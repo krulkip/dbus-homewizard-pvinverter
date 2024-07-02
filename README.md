@@ -1,4 +1,4 @@
-# dbus-shelly-1pm-pvinverter
+# dbus-Homewizard WiFi kWh meter 1-phase - pvinverter
 
 # Not working yet work in progress
 
