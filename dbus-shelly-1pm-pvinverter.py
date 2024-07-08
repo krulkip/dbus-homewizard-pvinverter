@@ -20,8 +20,8 @@ sys.path.insert(1, os.path.join(os.path.dirname(__file__), '/opt/victronenergy/d
 from vedbus import VeDbusService
 
 
-class DbusShelly1pmService:
-  def __init__(self, servicename, paths, productname='Homwewizard WiFi kWh meter 1-phase', connection='Shelly 1PM HTTP JSON service'):
+class DbusHomewizardPVService:
+  def __init__(self, servicename, paths, productname='Homwewizard kWh PV inverter', connection='Homewizard PV HTTP JSON service'):
     config = self._getConfig()
     deviceinstance = int(config['DEFAULT']['Deviceinstance'])
     customname = config['DEFAULT']['CustomName']
@@ -45,10 +45,10 @@ class DbusShelly1pmService:
     self._dbusservice.add_path('/Connected', 1)
 
     self._dbusservice.add_path('/Latency', None)
-    self._dbusservice.add_path('/FirmwareVersion', self._getShellyFWVersion())
+    self._dbusservice.add_path('/FirmwareVersion', 0.2)
     self._dbusservice.add_path('/HardwareVersion', 0)
     self._dbusservice.add_path('/Position', int(config['DEFAULT']['Position']))
-    self._dbusservice.add_path('/Serial', self._getShellySerial())
+    self._dbusservice.add_path('/Serial', self._getHomewizardSerial())
     self._dbusservice.add_path('/UpdateIndex', 0)
     self._dbusservice.add_path('/StatusCode', 0)  # Dummy path so VRM detects us as a PV-inverter.
 
@@ -66,23 +66,14 @@ class DbusShelly1pmService:
     # add _signOfLife 'timer' to get feedback in log every 5minutes
     gobject.timeout_add(self._getSignOfLifeInterval()*60*1000, self._signOfLife)
 
-  def _getShellySerial(self):
-    meter_data = self._getShellyData()
+  def _getHomewizardSerial(self):
+    meter_data = self._getHomewizardData()
 
-    if not meter_data['mac']:
-        raise ValueError("Response does not contain 'mac' attribute")
+    if not meter_data['unique_id']:
+        raise ValueError("Response does not contain 'unique_id' attribute")
 
-    serial = meter_data['mac']
+    serial = meter_data['unique_id']
     return serial
-
-  def _getShellyFWVersion(self):
-    meter_data = self._getShellyData()
-
-    if not meter_data['update']['old_version']:
-        raise ValueError("Response does not contain 'update/old_version' attribute")
-
-    ver = meter_data['update']['old_version']
-    return ver
 
   def _getConfig(self):
     config = configparser.ConfigParser()
@@ -100,21 +91,21 @@ class DbusShelly1pmService:
     return int(value)
 
 
-  def _getShellyStatusUrl(self):
-    config = self._getConfig()
-    accessType = config['DEFAULT']['AccessType']
+  def _getHomewizardStatusUrl(self):
+        config = self._getConfig()
+        accessType = config['DEFAULT']['AccessType']
+        
+        if accessType == 'OnPremise': 
+            URL = "http://%s/api/v1/data" % (config['ONPREMISE']['Host'])
+            # URL = URL.replace(":@", "")
+        else:
+            raise ValueError("AccessType %s is not supported" % (config['DEFAULT']['AccessType']))
+        
+        return URL
 
-    if accessType == 'OnPremise': 
-        URL = "http://%s:%s@%s/status" % (config['ONPREMISE']['Username'], config['ONPREMISE']['Password'], config['ONPREMISE']['Host'])
-        URL = URL.replace(":@", "")
-    else:
-        raise ValueError("AccessType %s is not supported" % (config['DEFAULT']['AccessType']))
 
-    return URL
-
-
-  def _getShellyData(self):
-    URL = self._getShellyStatusUrl()
+  def _getHomewizardData(self):
+    URL = self._getHomewizardStatusUrl()
     meter_r = requests.get(url = URL)
 
     # check for response
@@ -140,8 +131,8 @@ class DbusShelly1pmService:
 
   def _update(self):
     try:
-       #get data from Shelly 1pm
-       meter_data = self._getShellyData()
+       #get data from Homewizard
+       meter_data = self._getHomewizardData()
 
        config = self._getConfig()
        str(config['DEFAULT']['Phase'])
@@ -222,7 +213,7 @@ def main():
       _v = lambda p, v: (str(round(v, 1)) + 'V')
 
       #start our main-service
-      pvac_output = DbusShelly1pmService(
+      pvac_output = DbusHomewizardPVService(
         servicename='com.victronenergy.pvinverter',
         paths={
           '/Ac/Energy/Forward': {'initial': None, 'textformat': _kwh}, # energy produced by pv inverter
