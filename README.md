@@ -38,6 +38,7 @@ So what is the script doing:
 Thats it 😄
 
 ### Pictures
+![Homewizard](img/kWh-Meter-1-phase-HW-shop.png).
 ![Tile Overview](img/venus-os-tile-overview.PNG)
 ![Remote Console - Overview](img/venus-os-remote-console-overview.PNG) 
 ![SmartMeter - Values](img/venus-os-shelly1pm-pvinverter.PNG)
