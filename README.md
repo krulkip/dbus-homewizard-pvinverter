@@ -7,7 +7,7 @@ Integrate Homewizard WiFi kWh meter 1-phase into Victron Energies Venus OS
 ## Purpose
 With the scripts in this repo it should be easy possible to install, uninstall, restart a service that connects the Homewizard to the VenusOS and GX devices from Victron.
 Idea is inspired on @fabian-lauer project linked below.
-
+![Homewizard](img/kWh-Meter-1-phase-HW-shop.png).
 
 
 ## Inspiration
@@ -38,7 +38,6 @@ So what is the script doing:
 Thats it 😄
 
 ### Pictures
-![Homewizard](img/kWh-Meter-1-phase-HW-shop.png).
 ![Tile Overview](img/venus-os-tile-overview.PNG)
 ![Remote Console - Overview](img/venus-os-remote-console-overview.PNG) 
 ![SmartMeter - Values](img/venus-os-shelly1pm-pvinverter.PNG)
