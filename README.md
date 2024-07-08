@@ -5,7 +5,7 @@
 Integrate Homewizard WiFi kWh meter 1-phase into Victron Energies Venus OS
 
 ## Purpose
-With the scripts in this repo it should be easy possible to install, uninstall, restart a service that connects the Shelly 1PM to the VenusOS and GX devices from Victron.
+With the scripts in this repo it should be easy possible to install, uninstall, restart a service that connects the Homewizard to the VenusOS and GX devices from Victron.
 Idea is inspired on @fabian-lauer project linked below.
 
 
@@ -19,15 +19,7 @@ This project is my first on GitHub and with the Victron Venus OS, so I took some
 ## How it works
 ### My setup
 - 3-Phase installation
-- Shelly 1PM with latest firmware (20220209-094317/v1.11.8-g8c7bb8d)
-  - Measuring AC output of SUN-2000 GTIL on phase L3
-  - Connected to Wifi netowrk "A" with a known IP  
-- Shelly 1PM with latest firmware (20220209-094317/v1.11.8-g8c7bb8d)
-  - Measuring AC output of Envertech EVT-500 and Hoymiles HM-800 on phase L3
-  - Connected to Wifi netowrk "A" with a known IP  
-- Shelly 3EM used as a grid meter
-  - Connected over https://github.com/fabian-lauer/dbus-shelly-3em-smartmeter
-  - Connected to Wifi netowrk "A" with a known IP  
+- Several Homewizard energy meters such as P1 and single phase
 - Venus OS on Raspberry PI 4 4GB version 1.1 - Firmware v2.84
   - No other devices from Victron connected
   - Connected to Wifi netowrk "A"
@@ -37,7 +29,7 @@ As mentioned above the script is inspired by @fabian-lauer dbus-shelly-3em-smart
 So what is the script doing:
 - Running as a service
 - connecting to DBus of the Venus OS `com.victronenergy.pvinverter.http_{DeviceInstanceID_from_config}`
-- After successful DBus connection Shelly 1PM is accessed via REST-API - simply the /status is called and a JSON is returned with all details
+- After successful DBus connection Homewizard is accessed via REST-API - simply the /status is called and a JSON is returned with all details
   A sample JSON file from Shelly 1PM can be found [here](docs/shelly1pm-status-sample.json)
 - Serial/MAC is taken from the response as device serial
 - Paths are added to the DBus with default value 0 - including some settings like name, etc
@@ -59,12 +51,12 @@ After that call the install.sh script.
 
 The following script should do everything for you:
 ```
-wget https://github.com/krulkip/dbus-homewizard-pvinverter/archive/refs/tags/0.1.zip
+wget https://github.com/krulkip/dbus-homewizard-pvinverter/archive/refs/tags/main.zip
 unzip 0.1.zip "dbus-homewizard-pvinverter/*" -d /data
 mv /data/dbus-homewizard-pvinverter /data/dbus-homewizard-pvinverter1
 chmod a+x /data/dbus-homewizard-pvinverter1/install.sh
 /data/dbus-homewizard-pvinverter1/install.sh
-rm 0.1.zip
+rm main.zip
 ```
 ⚠️ Check configuration after that - because service is already installed an running and with wrong connection data (host, username, pwd) you will spam the log-file
 
