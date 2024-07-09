@@ -21,7 +21,7 @@ from vedbus import VeDbusService
 
 
 class DbusHomewizardPVService:
-  def __init__(self, servicename, paths, productname='Homwewizard kWh PV inverter', connection='Homewizard PV HTTP JSON service'):
+  def __init__(self, servicename, paths, productname='Homewizard kWh PV inverter', connection='Homewizard PV HTTP JSON service'):
     config = self._getConfig()
     deviceinstance = int(config['DEFAULT']['Deviceinstance'])
     customname = config['DEFAULT']['CustomName']
