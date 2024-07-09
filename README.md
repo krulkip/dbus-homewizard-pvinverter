@@ -31,7 +31,7 @@ So what is the script doing:
 - Running as a service
 - connecting to DBus of the Venus OS `com.victronenergy.pvinverter.http_{DeviceInstanceID_from_config}`
 - After successful DBus connection Homewizard is accessed via REST-API - simply the /status is called and a JSON is returned with all details
-  A sample JSON file from Shelly 1PM can be found [here](docs-homewizard-status-sample.json)
+  A sample JSON file from Homewizard can be found [here](docs/docs-homewizard-status-sample.json)
 - Serial/unique_id is taken from the response as device serial
 - Paths are added to the DBus with default value 0 - including some settings like name, etc
 - After that a "loop" is started which pulls Shelly 1PM data every 750ms from the REST-API and updates the values in the DBus
