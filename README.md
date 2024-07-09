@@ -19,10 +19,11 @@ This project is my first on GitHub and with the Victron Venus OS, so I took some
 ## How it works
 ### My setup
 - 3-Phase installation
-- Several Homewizard energy meters such as P1 and single phase
-- Venus OS on Raspberry PI 4 4GB version 1.1 - Firmware v2.84
+- Homewizard P1 energy meters for house measurement
+- Homewizard energy meter to meqasure PV from SUN2000-4KTL-L1
+- Venus OS on Raspberry PI 4 4GB version 1.1 - Firmware v3.34
   - No other devices from Victron connected
-  - Connected to Wifi netowrk "A"
+  - Connected to Wifi network "A"
 
 ### Details / Process
 As mentioned above the script is inspired by @fabian-lauer dbus-shelly-3em-smartmeter implementation.
@@ -31,7 +32,7 @@ So what is the script doing:
 - connecting to DBus of the Venus OS `com.victronenergy.pvinverter.http_{DeviceInstanceID_from_config}`
 - After successful DBus connection Homewizard is accessed via REST-API - simply the /status is called and a JSON is returned with all details
   A sample JSON file from Shelly 1PM can be found [here](docs/shelly1pm-status-sample.json)
-- Serial/MAC is taken from the response as device serial
+- Serial/unique_id is taken from the response as device serial
 - Paths are added to the DBus with default value 0 - including some settings like name, etc
 - After that a "loop" is started which pulls Shelly 1PM data every 750ms from the REST-API and updates the values in the DBus
 
@@ -71,7 +72,7 @@ Within the project there is a file `/data/dbus-shelly-1pm-pvinverter/config.ini`
 | DEFAULT  | CustomName | Name shown in Remote Console (e.g. name of pv inverter) |
 | DEFAULT  | Phase | Valid values L1, L2 or L3: represents the phase where pv inverter is feeding in |
 | DEFAULT  | Position | Valid values 0, 1 or 2: represents where the inverter is connected (0=AC input 1; 1=AC output; 2=AC input 2) |
-| ONPREMISE  | Host | IP or hostname of on-premise Shelly 3EM web-interface |
+| ONPREMISE  | Host | IP or hostname of on-premise Homewizard web-interface |
 | ONPREMISE  | Username | Username for htaccess login - leave blank if no username/password required |
 | ONPREMISE  | Password | Password for htaccess login - leave blank if no username/password required |
 
