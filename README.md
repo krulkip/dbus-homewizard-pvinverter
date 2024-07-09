@@ -53,8 +53,8 @@ After that call the install.sh script.
 The following script should do everything for you:
 ```
 wget https://github.com/krulkip/dbus-homewizard-pvinverter/archive/refs/tags/main.zip
-unzip main.zip "dbus-homewizard-pvinverter/*" -d /data
-mv /data/dbus-homewizard-pvinverter /data/dbus-homewizard-pvinverter1
+unzip main.zip "dbus-homewizard-pvinverter-main/*" -d /data
+mv /data/dbus-homewizard-pvinverter-main /data/dbus-homewizard-pvinverter1
 chmod a+x /data/dbus-homewizard-pvinverter1/install.sh
 /data/dbus-homewizard-pvinverter1/install.sh
 rm main.zip
