@@ -144,8 +144,8 @@ class DbusHomewizardPVService:
          pre = '/Ac/' + phase
 
          if phase == pvinverter_phase:
-           power = meter_data['meters'][0]['power']
-           total = meter_data['meters'][0]['total']
+           power = meter_data['active_power_w']
+           total = meter_data['total_power_import_kwh']
            voltage = 230
            current = power / voltage
 
