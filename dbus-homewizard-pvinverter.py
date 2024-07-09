@@ -23,6 +23,7 @@ from vedbus import VeDbusService
 class DbusHomewizardPVService:
   def __init__(self, servicename, paths, productname='Homewizard kWh PV inverter', connection='Homewizard PV HTTP JSON service'):
     config = self._getConfig()
+    role='pvinverted'
     deviceinstance = int(config['DEFAULT']['Deviceinstance'])
     customname = config['DEFAULT']['CustomName']
 
@@ -38,16 +39,17 @@ class DbusHomewizardPVService:
 
     # Create the mandatory objects
     self._dbusservice.add_path('/DeviceInstance', deviceinstance)
-    #self._dbusservice.add_path('/ProductId', 16) # value used in ac_sensor_bridge.cpp of dbus-cgwacs
-    self._dbusservice.add_path('/ProductId', 0xFFFF) # id assigned by Victron Support from SDM630v2.py
+    self._dbusservice.add_path('/ProductId', 0xA144) # id assigned by Victron Support from SDM630v2.py
+    self._dbusservice.add_path('/DeviceType', 345)  
     self._dbusservice.add_path('/ProductName', productname)
     self._dbusservice.add_path('/CustomName', customname)
-    self._dbusservice.add_path('/Connected', 1)
-
     self._dbusservice.add_path('/Latency', None)
     self._dbusservice.add_path('/FirmwareVersion', 0.2)
     self._dbusservice.add_path('/HardwareVersion', 0)
-    self._dbusservice.add_path('/Position', int(config['DEFAULT']['Position']))
+    self._dbusservice.add_path('/Connected', 1)
+    self._dbusservice.add_path('/Role', role)
+
+    self._dbusservice.add_path('/Position', self._getHomewizardPosition())
     self._dbusservice.add_path('/Serial', self._getHomewizardSerial())
     self._dbusservice.add_path('/UpdateIndex', 0)
     self._dbusservice.add_path('/StatusCode', 0)  # Dummy path so VRM detects us as a PV-inverter.
@@ -90,7 +92,15 @@ class DbusHomewizardPVService:
 
     return int(value)
 
+  def _getHomewizardPosition(self):
+    config = self._getConfig()
+    value = config['DEFAULT']['Position']
 
+    if not value:
+        value = 0
+
+    return int(value)
+    
   def _getHomewizardStatusUrl(self):
         config = self._getConfig()
         accessType = config['DEFAULT']['AccessType']
@@ -106,11 +116,11 @@ class DbusHomewizardPVService:
 
   def _getHomewizardData(self):
     URL = self._getHomewizardStatusUrl()
-    meter_r = requests.get(url = URL)
+    meter_r = requests.get(url = URL, timeout=5)
 
     # check for response
     if not meter_r:
-        raise ConnectionError("No response from Shelly 1PM - %s" % (URL))
+        raise ConnectionError("No response from Homewizard - %s" % (URL))
 
     meter_data = meter_r.json()
 
@@ -133,10 +143,9 @@ class DbusHomewizardPVService:
     try:
        #get data from Homewizard
        meter_data = self._getHomewizardData()
-
        config = self._getConfig()
+        
        str(config['DEFAULT']['Phase'])
-
        pvinverter_phase = str(config['DEFAULT']['Phase'])
 
        #send data to DBus
@@ -146,7 +155,7 @@ class DbusHomewizardPVService:
          if phase == pvinverter_phase:
            power = meter_data['active_power_w']
            total = meter_data['total_power_import_kwh']
-           voltage = 230
+           voltage = meter_data['active_voltage_v']
            current = power / voltage
 
            self._dbusservice[pre + '/Voltage'] = voltage
