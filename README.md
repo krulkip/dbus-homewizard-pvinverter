@@ -52,7 +52,7 @@ After that call the install.sh script.
 
 The following script should do everything for you:
 ```
-wget https://github.com/krulkip/dbus-homewizard-pvinverter/archive/refs/tags/main.zip
+wget https://github.com/krulkip/dbus-homewizard-pvinverter/archive/refs/heads/main.zip
 unzip main.zip "dbus-homewizard-pvinverter-main/*" -d /data
 # if not first time delete old directory
 rm -rf /data/dbus-homewizard-pvinverter1
