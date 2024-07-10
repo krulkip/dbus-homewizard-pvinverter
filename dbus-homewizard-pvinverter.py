@@ -3,6 +3,7 @@
 # import normal packages
 import platform
 import logging
+import logging.handlers
 import sys
 import os
 import sys
@@ -23,14 +24,24 @@ from vedbus import VeDbusService
 class DbusHomewizardPVService:
   def __init__(self, servicename, paths, productname='Homewizard kWh PV inverter', connection='Homewizard PV HTTP JSON service'):
     config = self._getConfig()
-    role='pvinverted'
     deviceinstance = int(config['DEFAULT']['Deviceinstance'])
     customname = config['DEFAULT']['CustomName']
+    role = config['DEFAULT']['Role']
+    
+    allowed_roles = ['pvinverter','grid']
+    if role in allowed_roles:
+        servicename = 'com.victronenergy.' + role
+    else:
+        logging.error("Configured Role: %s is not in the allowed list")
+        exit()
+
+    if role == 'pvinverter':
+         productid = 0xA144
+    else:
+         productid = 45069
 
     self._dbusservice = VeDbusService("{}.http_{:02d}".format(servicename, deviceinstance))
     self._paths = paths
-
-    logging.debug("%s /DeviceInstance = %d" % (servicename, deviceinstance))
 
     # Create the management objects, as specified in the ccgx dbus-api document
     self._dbusservice.add_path('/Mgmt/ProcessName', __file__)
@@ -63,7 +74,7 @@ class DbusHomewizardPVService:
     self._lastUpdate = 0
 
     # add _update function 'timer'
-    gobject.timeout_add(250, self._update) # pause 250ms before the next request
+    gobject.timeout_add(500, self._update) # pause 500ms before the next request
 
     # add _signOfLife 'timer' to get feedback in log every 5minutes
     gobject.timeout_add(self._getSignOfLifeInterval()*60*1000, self._signOfLife)
@@ -128,7 +139,6 @@ class DbusHomewizardPVService:
     if not meter_data:
         raise ValueError("Converting response to JSON failed")
 
-
     return meter_data
 
 
@@ -152,17 +162,10 @@ class DbusHomewizardPVService:
        for phase in ['L1', 'L2', 'L3']:
          pre = '/Ac/' + phase
 
-         if phase == pvinverter_phase:
-           power = meter_data['active_power_w']
-           total = meter_data['total_power_import_kwh']
-           voltage = meter_data['active_voltage_v']
-           current = power / voltage
-
-           self._dbusservice[pre + '/Voltage'] = voltage
-           self._dbusservice[pre + '/Current'] = current
-           self._dbusservice[pre + '/Power'] = power
-           if power > 0:
-             self._dbusservice[pre + '/Energy/Forward'] = total/1000/60 
+         if phase == pvinverter_phase:       
+           self._dbusservice[pre + '/Voltage'] = meter_data['active_voltage_v']
+           self._dbusservice[pre + '/Current'] = meter_data['active_current_a']
+           self._dbusservice[pre + '/Power'] = meter_data['active_power_w']
 
          else:
            self._dbusservice[pre + '/Voltage'] = 0
@@ -170,22 +173,28 @@ class DbusHomewizardPVService:
            self._dbusservice[pre + '/Power'] = 0
            self._dbusservice[pre + '/Energy/Forward'] = 0
 
-       self._dbusservice['/Ac/Power'] = self._dbusservice['/Ac/' + pvinverter_phase + '/Power']
-       self._dbusservice['/Ac/Energy/Forward'] = self._dbusservice['/Ac/' + pvinverter_phase + '/Energy/Forward']
+      self.dbusservice['/Ac/Power'] = meter_data['active_power_w']
+      self._dbusservice['/Ac/Energy/Forward'] = meter_data['total_power_import_kwh']
+      self._dbusservice['/Ac/Energy/Reverse'] = meter_data['total_power_export_kwh']
 
        #logging
        logging.debug("House Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
        logging.debug("House Forward (/Ac/Energy/Forward): %s" % (self._dbusservice['/Ac/Energy/Forward']))
+       logging.debug("House Forward (/Ac/Energy/Reverse): %s" % (self._dbusservice['/Ac/Energy/Reverse']))
        logging.debug("---");
 
        # increment UpdateIndex - to show that new data is available
-       index = self._dbusservice['/UpdateIndex'] + 1  # increment index
-       if index > 255:   # maximum value of the index
-         index = 0       # overflow from 255 to 0
-       self._dbusservice['/UpdateIndex'] = index
+       self._dbusservice['/UpdateIndex'] = (self._dbusservice['/UpdateIndex'] + 1) % 256  # increment index
 
        #update lastupdate vars
        self._lastUpdate = time.time()
+    except (ValueError, requests.exceptions.ConnectionError, requests.exceptions.Timeout, ConnectionError) as e:
+            logging.critical('Error getting data from Homewizard - check network or Homewizard status. Setting power values to 0. Details: %s', e, exc_info=e)       
+            self._dbusservice['/Ac/L1/Power'] = 0                                       
+            self._dbusservice['/Ac/L2/Power'] = 0                                       
+            self._dbusservice['/Ac/L3/Power'] = 0
+            self._dbusservice['/Ac/Power'] = 0
+            self._dbusservice['/UpdateIndex'] = (self._dbusservice['/UpdateIndex'] + 1 ) % 256 
     except Exception as e:
        logging.critical('Error at %s', '_update', exc_info=e)
 
@@ -196,6 +205,17 @@ class DbusHomewizardPVService:
     logging.debug("someone else updated %s to %s" % (path, value))
     return True # accept the change
 
+def getLogLevel():
+    config = configparser.ConfigParser()
+    config.read("%s/config.ini" % (os.path.dirname(os.path.realpath(__file__))))
+    logLevelString = config['DEFAULT']['LogLevel']
+    
+    if logLevelString:
+        level = logging.getLevelName(logLevelString)
+    else:
+        level = logging.INFO
+        
+    return level
 
 
 def main():
@@ -225,7 +245,7 @@ def main():
       pvac_output = DbusHomewizardPVService(
         servicename='com.victronenergy.pvinverter',
         paths={
-          '/Ac/Energy/Forward': {'initial': None, 'textformat': _kwh}, # energy produced by pv inverter
+          '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh}, # energy produced by pv inverter
           '/Ac/Power': {'initial': 0, 'textformat': _w},
 
           '/Ac/Current': {'initial': 0, 'textformat': _a},
@@ -240,9 +260,9 @@ def main():
           '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
           '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
           '/Ac/L3/Power': {'initial': 0, 'textformat': _w},
-          '/Ac/L1/Energy/Forward': {'initial': None, 'textformat': _kwh},
-          '/Ac/L2/Energy/Forward': {'initial': None, 'textformat': _kwh},
-          '/Ac/L3/Energy/Forward': {'initial': None, 'textformat': _kwh},
+          '/Ac/L1/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+          '/Ac/L2/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+          '/Ac/L3/Energy/Forward': {'initial': 0, 'textformat': _kwh},
         })
 
       logging.info('Connected to dbus, and switching over to gobject.MainLoop() (= event based)')
