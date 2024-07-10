@@ -61,7 +61,7 @@ class DbusHomewizardPVService:
     self._dbusservice.add_path('/Role', role)
 
     self._dbusservice.add_path('/Position', self._getHomewizardPosition())
-    self._dbusservice.add_path('/Serial', self._getHomewizardSerial())
+    self._dbusservice.add_path('/Serial', 0x2C11F4) # only in P1 meter do you have serial in api/v1/data
     self._dbusservice.add_path('/UpdateIndex', 0)
     self._dbusservice.add_path('/StatusCode', 0)  # Dummy path so VRM detects us as a PV-inverter.
 
