@@ -69,19 +69,10 @@ class DbusShelly1pmService:
     gobject.timeout_add(self._getSignOfLifeInterval()*60*1000, self._signOfLife)
  
   def _getShellySerial(self):
-    config = self._getConfig()                                                                                                          
-    accessType = config['DEFAULT']['AccessType']                                                                                        
-    plusPmSupport = config['DEFAULT']['PlusPmSupport']  
-    meter_data = self._getShellyData()  
-    
-#    if not meter_data['mac'] and not meter_data['sys']['mac']:
-    if not meter_data['sys']['mac']:
-        raise ValueError("Response does not contain 'mac' attribute")
-    
-    if plusPmSupport == 'True':
-        serial = meter_data['sys']['mac']
-    else:
-        serial = meter_data['mac']
+    config = self._getConfig()                                                                                                                                                                                                
+    plusPmSupport = config['DEFAULT']['PlusPmSupport']                                                                                                                                                                                              
+    serial = config['DEFAULT']['Serial']
+    return serial
     return serial
  
  
@@ -110,7 +101,7 @@ class DbusShelly1pmService:
         URL = "http://%s/rpc/Shelly.GetStatus" % (config['ONPREMISE']['Host'])
         URL = URL.replace(":@", "")
     elif accessType == 'OnPremise':
-        URL = "http://%s:%s@%s/status" % (config['ONPREMISE']['Username'], config['ONPREMISE']['Password'], config['ONPREMISE']['Host'])
+        URL = "http://%s/api/v1/data" % (config['ONPREMISE']['Host'])
         URL = URL.replace(":@", "")
     else:
         raise ValueError("AccessType %s is not supported" % (config['DEFAULT']['AccessType']))
@@ -178,8 +169,8 @@ class DbusShelly1pmService:
 
          elif phase == pvinverter_phase:
 
-             power = meter_data['meters'][0]['power']
-             total = meter_data['meters'][0]['total']
+             power = meter_data['active_power_l1_w']
+             total = meter_data['total_power_import_kwh'']
              voltage = 230
              current = power / voltage
            
@@ -194,9 +185,11 @@ class DbusShelly1pmService:
            self._dbusservice[pre + '/Current'] = 0
            self._dbusservice[pre + '/Power'] = 0
            self._dbusservice[pre + '/Energy/Forward'] = 0
+           self._dbusservice[pre + '/Energy/Reverse'] = 0
            
-       self._dbusservice['/Ac/Power'] = self._dbusservice['/Ac/' + pvinverter_phase + '/Power']
-       self._dbusservice['/Ac/Energy/Forward'] = self._dbusservice['/Ac/' + pvinverter_phase + '/Energy/Forward']
+       self._dbusservice['/Ac/Power'] = meter_data['active_power_w']
+       self._dbusservice['/Ac/Energy/Forward'] = (meter_data['total_power_import_kwh']/1000)
+       self._dbusservice['/Ac/Energy/Reverse'] = (meter_data['total_power_export_kwh']/1000)
        
        #logging
        logging.debug("House Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
